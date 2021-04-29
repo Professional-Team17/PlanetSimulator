@@ -7,7 +7,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_executable(PlanetSimulator PlanetSimulator.cpp)
 
-target_link_libraries(PlanetSimulator mingw32)
+if (CMAKE_HOST_WIN32)
+    target_link_libraries(PlanetSimulator mingw32)
+endif()
 target_link_libraries(PlanetSimulator SDL2main)
 target_link_libraries(PlanetSimulator SDL2)
 target_link_libraries(PlanetSimulator SDL2_ttf)
