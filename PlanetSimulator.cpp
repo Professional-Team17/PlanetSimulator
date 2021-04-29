@@ -19,7 +19,6 @@ const int MAXLENGTH = 100;
 SDL_Window *wnd = NULL;
 SDL_Renderer *ren = NULL;
 TTF_Font *font;
-int Bodynum = 1;
 
 struct point{
     int x,y;
@@ -79,7 +78,7 @@ void DrawText(std::string text, int x, int y, SDL_Color col){
 class Body
 {
 	public:
-		Body()
+		Body(int Bodynum)
 		{
 			x = rand() % SCREEN_WIDTH;
 			y = rand() % SCREEN_HEIGHT;
@@ -87,7 +86,7 @@ class Body
 			r = cbrt(m * SK);
 			vx = (rand() & 1 ? 1 : -1) * (rand() % 401 / 200.);
 			vy = (rand() & 1 ? 1 : -1) * (rand() % 401 / 200.);
-			num = Bodynum, Bodynum++;
+			num = Bodynum;
 			col = {rand() % 256, rand() % 256, rand() % 256};
 			for (int i = 0; i < MAXLENGTH; i++)
 			{
@@ -202,7 +201,7 @@ int main(int argc, char *argv[])
 		SDL_Quit();
 		return -1;
 	}
-	for(int i = 0; i < BODYNUMS; i++)bodies.push_back(Body());
+	for(int i = 1; i <= BODYNUMS; i++)bodies.push_back(Body(i));
 	std::list<Body>::iterator i, j;
 	int listnum = 0;
 	while (run)
