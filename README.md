@@ -1,5 +1,5 @@
 # PlanetSimulator
-A cross-platform physical simulator.
+A cross-platform physical simulator of celestial.
 
 This program is written in C++, powered by SDL2.
 
