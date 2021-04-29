@@ -1,20 +1,32 @@
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_ttf.h>
 #include <iostream>
+#include <cstring>
 #include <list>
 #include <cstdlib>
 #include <ctime>
 #include <cmath>
+#include <queue>
 
 const double SK = 0.23873241463784;
 const double G = 0.1;
 const double T = 0.5;
 const int SCREEN_WIDTH = 960;
 const int SCREEN_HEIGHT = 640;
-const int BODYNUMS = 800;
+const int BODYNUMS = 200;
 const int MAXLENGTH = 100;
 
 SDL_Window *wnd = NULL;
 SDL_Renderer *ren = NULL;
+TTF_Font *font;
+int Bodynum = 1;
+
+struct point{
+    int x,y;
+    point(int xx, int yy){
+        x=xx,y=yy;
+    }
+};
 
 double cbrt(double x)
 {
@@ -27,8 +39,9 @@ double cbrt(double x)
 	return x1;
 }
 
-void DrawCircle(int x, int y, int r)
+void DrawCircle(SDL_Color col, int x, int y, int r)
 {
+    SDL_SetRenderDrawColor(ren, col.r, col.g, col.b, 255);
 	int xc = 0, yc = r, i, d;
 	d = 3 - (r << 1);
 	while (xc <= yc)
@@ -54,6 +67,15 @@ void DrawCircle(int x, int y, int r)
 	}
 }
 
+void DrawText(std::string text, int x, int y, SDL_Color col){
+    SDL_Surface *text_surface = TTF_RenderText_Solid(font, text.c_str(), col);
+    SDL_Texture *text_texture = SDL_CreateTextureFromSurface(ren, text_surface);
+    SDL_Rect rec = {x, y, text_surface->w, text_surface->h};
+    SDL_RenderCopy(ren, text_texture, NULL, &rec);
+    SDL_DestroyTexture(text_texture);
+    SDL_FreeSurface(text_surface);
+}
+
 class Body
 {
 	public:
@@ -65,13 +87,11 @@ class Body
 			r = cbrt(m * SK);
 			vx = (rand() & 1 ? 1 : -1) * (rand() % 401 / 200.);
 			vy = (rand() & 1 ? 1 : -1) * (rand() % 401 / 200.);
-			red = rand() % 256;
-			green = rand() % 256;
-			blue = rand() % 256;
+			num = Bodynum, Bodynum++;
+			col = {rand() % 256, rand() % 256, rand() % 256};
 			for (int i = 0; i < MAXLENGTH; i++)
 			{
-				listx.push_back(x);
-				listy.push_back(y);
+				path.push_back(point(x, y));
 			}
 		}
 		void move()
@@ -80,30 +100,22 @@ class Body
 			{
 				x += vx * T;
 				y += vy * T;
-				listx.push_back(x);
-				listy.push_back(y);
-				listx.pop_front();
-				listy.pop_front();
+				path.push_back(point(x, y));
+				path.pop_front();
 			}
 		}
 		void show()
 		{
-			if (m > 0)
-			{
-				SDL_SetRenderDrawColor(ren, red, green, blue, 255);
-				DrawCircle(x, y, r);
-				std::list<int>::iterator itx1 = listx.begin(), itx2 = itx1, ity1 = listy.begin(), ity2 = ity1;
-				++itx2;
-				++ity2;
-				while (itx2 != listx.end())
-				{
-					SDL_RenderDrawLine(ren, *itx1, *ity1, *itx2, *ity2);
-					++itx1;
-					++itx2;
-					++ity1;
-					++ity2;
-				}
-			}
+            DrawCircle(col, x, y, r);
+            std::list<point>::iterator it1 = path.begin(), it2 = it1;
+            ++it2;
+            while (it2 != path.end())
+            {
+                SDL_RenderDrawLine(ren, (*it1).x, (*it1).y, (*it2).x, (*it2).y);
+                ++it1;
+                ++it2;
+            }
+            DrawText("Body:" + std::to_string(num), x, y, {255,255,255});
 		}
 		static void gravitation(Body &a, Body &b)
 		{
@@ -144,32 +156,37 @@ class Body
 				}
 			}
 		}
-	private:
 		double x;
 		double y;
 		double m;
 		double r;
 		double vx;
 		double vy;
-		unsigned int red;
-		unsigned int green;
-		unsigned int blue;
-		std::list<int> listx;
-		std::list<int> listy;
+		int num;
+		SDL_Color col;
+		std::list<point> path;
 };
 
 int main(int argc, char *argv[])
 {
 	SDL_Event e;
 	bool run = true;
-	int i, j;
 	srand(time(NULL));
-	Body bodys[BODYNUMS];
+	std::list<Body> bodies;
 	if (SDL_Init(SDL_INIT_VIDEO) == -1)
 	{
 		std::cerr << "Error: " << SDL_GetError();
 		return -1;
 	}
+	if(TTF_Init()==-1) {
+        std::cerr << "Error: " << TTF_GetError();
+        return 1;
+    }
+    font=TTF_OpenFont("font.ttf", 12);
+    if(!font) {
+        std::cerr << "Error: " << TTF_GetError();
+        return -1;
+    }
 	wnd = SDL_CreateWindow("Planet", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 	if (!wnd)
 	{
@@ -185,6 +202,9 @@ int main(int argc, char *argv[])
 		SDL_Quit();
 		return -1;
 	}
+	for(int i = 0; i < BODYNUMS; i++)bodies.push_back(Body());
+	std::list<Body>::iterator i, j;
+	int listnum = 0;
 	while (run)
 	{
 		while (SDL_PollEvent(&e))
@@ -193,14 +213,29 @@ int main(int argc, char *argv[])
 		}
 		SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
 		SDL_RenderClear(ren);
-		for (i = 0; i < BODYNUMS; i++)
+		std::queue<std::list<Body>::iterator> earse;
+		for (i = bodies.begin(); i != bodies.end(); ++i)
 		{
-			bodys[i].move();
-			for (j = 0; j < BODYNUMS; j++)
+			(*i).move();
+			for (j = bodies.begin(); j != bodies.end(); ++j)
 			{
-				if (i != j) Body::gravitation(bodys[i], bodys[j]);
+				if (i != j) Body::gravitation(*i, *j);
 			}
-			bodys[i].show();
+			if((*i).m == 0){
+                earse.push(i);
+                continue;
+            }
+			(*i).show();
+		}
+		while(!earse.empty()){
+            std::list<Body>::iterator t = earse.front();
+            earse.pop();
+            bodies.erase(t);
+		}
+		for (i = bodies.begin(),listnum = 0; i != bodies.end(); ++i, ++listnum){
+            if((listnum + 1) * TTF_FontHeight(font) <= SCREEN_HEIGHT){
+                DrawText("Body:" + std::to_string((*i).num) + " m:" + std::to_string((*i).m) + " r:" + std::to_string((*i).r), 0, listnum * TTF_FontHeight(font), (*i).col);
+			}
 		}
 		SDL_RenderPresent(ren);
 	}
