@@ -95,13 +95,10 @@ class Body
 		}
 		void move()
 		{
-			if (m > 0)
-			{
-				x += vx * T;
-				y += vy * T;
-				path.push_back(point(x, y));
-				path.pop_front();
-			}
+            x += vx * T;
+            y += vy * T;
+            path.push_back(point(x, y));
+            path.pop_front();
 		}
 		void show()
 		{
@@ -119,42 +116,39 @@ class Body
 		static void gravitation(Body &a, Body &b)
 		{
 			double tmp1, tmp2;
-			if (a.m > 0 && b.m > 0)
-			{
-				if ((a.r + b.r) * (a.r + b.r) < (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y))
-				{
-					tmp1 = G * b.m / ((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
-					tmp2 = sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
-					a.vx += tmp1 * ((b.x- a.x) / tmp2);
-					a.vy += tmp1 * ((b.y - a.y) / tmp2);
-				}
-				else
-				{
-					if (a.m >= b.m)
-					{
-						a.vx = (a.m * a.vx + b.m * b.vx) / (a.m + b.m);
-						a.vy = (a.m * a.vy + b.m * b.vy) / (a.m + b.m);
-						a.m += b.m;
-						a.r = cbrt(a.m * SK);
-						b.m = 0;
-						b.r = 0;
-						b.vx = 0;
-						b.vy = 0;
-					}
-					else
-					{
-						b.vx = (a.m * a.vx + b.m * b.vx) / (a.m + b.m);
-						b.vy = (a.m * a.vy + b.m * b.vy) / (a.m + b.m);
-						b.m += a.m;
-						b.r = cbrt(b.m * SK);
-						a.m = 0;
-						a.r = 0;
-						a.vx = 0;
-						a.vy = 0;
-					}
-				}
-			}
-		}
+            if ((a.r + b.r) * (a.r + b.r) < (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y))
+            {
+                tmp1 = G * b.m / ((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+                tmp2 = sqrt((b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y));
+                a.vx += tmp1 * ((b.x- a.x) / tmp2);
+                a.vy += tmp1 * ((b.y - a.y) / tmp2);
+            }
+            else
+            {
+                if (a.m >= b.m)
+                {
+                    a.vx = (a.m * a.vx + b.m * b.vx) / (a.m + b.m);
+                    a.vy = (a.m * a.vy + b.m * b.vy) / (a.m + b.m);
+                    a.m += b.m;
+                    a.r = cbrt(a.m * SK);
+                    b.m = 0;
+                    b.r = 0;
+                    b.vx = 0;
+                    b.vy = 0;
+                }
+                else
+                {
+                    b.vx = (a.m * a.vx + b.m * b.vx) / (a.m + b.m);
+                    b.vy = (a.m * a.vy + b.m * b.vy) / (a.m + b.m);
+                    b.m += a.m;
+                    b.r = cbrt(b.m * SK);
+                    a.m = 0;
+                    a.r = 0;
+                    a.vx = 0;
+                    a.vy = 0;
+                }
+            }
+        }
 		double x;
 		double y;
 		double m;
