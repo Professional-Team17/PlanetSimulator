@@ -8,7 +8,7 @@
 #include <cmath>
 #include <queue>
 
-const double SK = 0.23873241463784;
+const double SK = 0.2;
 const double G = 0.1;
 const double T = 0.5;
 const int SCREEN_WIDTH = 960;
@@ -18,7 +18,7 @@ const int MAXLENGTH = 100;
 
 SDL_Window *wnd = NULL;
 SDL_Renderer *ren = NULL;
-TTF_Font *font;
+TTF_Font *font = NULL;
 
 struct point{
     int x,y;
@@ -26,6 +26,9 @@ struct point{
         x=xx,y=yy;
     }
 };
+
+point lay=point(0,0);
+bool is_lay;
 
 double cbrt(double x)
 {
@@ -87,7 +90,22 @@ class Body
 			vx = (rand() & 1 ? 1 : -1) * (rand() % 401 / 200.);
 			vy = (rand() & 1 ? 1 : -1) * (rand() % 401 / 200.);
 			num = Bodynum;
-			col = {rand() % 256, rand() % 256, rand() % 256};
+			col = {Uint8(rand() % 256), Uint8(rand() % 256), Uint8(rand() % 256)};
+			for (int i = 0; i < MAXLENGTH; i++)
+			{
+				path.push_back(point(x, y));
+			}
+		}
+		Body(int Bodynum, point pos, point vpos)
+		{
+			x = pos.x;
+			y = pos.y;
+			m = rand() % 500 + 10.;
+			r = cbrt(m * SK);
+			vx = vpos.x-pos.x;
+			vy = vpos.y-pos.y;
+			num = Bodynum;
+			col = {Uint8(rand() % 256), Uint8(rand() % 256), Uint8(rand() % 256)};
 			for (int i = 0; i < MAXLENGTH; i++)
 			{
 				path.push_back(point(x, y));
@@ -166,6 +184,7 @@ int main(int argc, char *argv[])
 	bool run = true;
 	srand(time(NULL));
 	std::list<Body> bodies;
+	is_lay=0;
 	if (SDL_Init(SDL_INIT_VIDEO) == -1)
 	{
 		std::cerr << "Error: " << SDL_GetError();
@@ -195,9 +214,15 @@ int main(int argc, char *argv[])
 		SDL_Quit();
 		return -1;
 	}
+	int listnum;
+	int bodynum;
+	bool is_botton;
+start:
 	for(int i = 1; i <= BODYNUMS; i++)bodies.push_back(Body(i));
 	std::list<Body>::iterator i, j;
-	int listnum = 0;
+	listnum = 0;
+	bodynum=BODYNUMS;
+	is_botton=0;
 	while (run)
 	{
 		while (SDL_PollEvent(&e))
@@ -230,7 +255,39 @@ int main(int argc, char *argv[])
                 DrawText("Body:" + std::to_string((*i).num) + " m:" + std::to_string((*i).m) + " r:" + std::to_string((*i).r), 0, listnum * TTF_FontHeight(font), (*i).col);
 			}
 		}
+		if(is_lay){
+			SDL_SetRenderDrawColor(ren,255,255,255,255);
+			SDL_RenderDrawLine(ren,lay.x,lay.y,int(e.button.x),int(e.button.y));
+			DrawCircle({255,255,255},lay.x,lay.y,5);
+			DrawText("laypoint",lay.x,lay.y,{255,255,255});
+		}
 		SDL_RenderPresent(ren);
+		if(e.button.button!=SDL_BUTTON_LEFT&&e.button.button!=SDL_BUTTON_RIGHT){
+			is_botton=0;
+		}
+		if(is_botton){
+			continue;
+		}
+		if(!is_lay&&e.button.button==SDL_BUTTON_LEFT){
+			lay=point(int(e.button.x),int(e.button.y));
+			is_lay=1;
+			is_botton=1;
+		}
+		else if(is_lay&&e.button.button==SDL_BUTTON_LEFT){
+			bodies.push_back(Body(bodynum,lay,point(int(e.button.x),int(e.button.y))));
+			bodynum++;
+			is_botton=1;
+		}
+		else if(is_lay&&e.button.button==SDL_BUTTON_RIGHT){
+			is_lay=0;
+			lay=point(0,0);
+			is_botton=1;
+		}
+		else if(!is_lay&&e.button.button==SDL_BUTTON_RIGHT){
+			bodies.clear();
+			is_botton=1;
+			goto start;
+		}
 	}
 	SDL_DestroyRenderer(ren);
 	SDL_DestroyWindow(wnd);
