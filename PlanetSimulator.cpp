@@ -212,7 +212,7 @@ int main(int argc, char *argv[])
         std::cerr << "Error: " << TTF_GetError();
         return -1;
     }
-	wnd = SDL_CreateWindow("Planet", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
+	wnd = SDL_CreateWindow("PlanetSimulator", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN);
 	if (!wnd)
 	{
 		std::cerr << "Error: " << SDL_GetError();
@@ -233,6 +233,7 @@ int main(int argc, char *argv[])
 	point lay;
 	bool is_lay;
 	bool is_pause;
+	bool is_find;
 start:
 	for(int i = 1; i <= BODYNUMS; i++)bodies.push_back(Body(i));
 	std::list<Body>::iterator i, j;
@@ -243,6 +244,7 @@ start:
 	lay=point(0,0);
 	mid=point(SCREEN_WIDTH/2,SCREEN_HEIGHT/2);
 	is_pause=0;
+	is_find=0;
 	while (run)
 	{
 		while (SDL_PollEvent(&e))
@@ -284,7 +286,7 @@ start:
 			DrawText("laypoint",ratiox(lay.x),ratioy(lay.y),{255,255,255});
 		}
 		SDL_RenderPresent(ren);
-		if(e.button.button!=SDL_BUTTON_LEFT&&e.button.button!=SDL_BUTTON_RIGHT&&e.key.keysym.sym!=SDLK_p){
+		if(e.button.button!=SDL_BUTTON_LEFT&&e.button.button!=SDL_BUTTON_RIGHT&&e.key.keysym.sym!=SDLK_p&&e.key.keysym.sym!=SDLK_f){
 			is_botton=0;
 		}
 		if(e.type == SDL_MOUSEWHEEL){
@@ -312,11 +314,26 @@ start:
 		default:
 			break;
 		}
+		if(is_find){
+			std::list<Body>::iterator maxn;
+			double maxm=0;
+			for(i = bodies.begin(); i != bodies.end(); ++i){
+				if((*i).m>maxm){
+					maxn=i;
+					maxm=(*i).m;
+				}
+			}
+			mid=point((*maxn).x,(*maxn).y);
+		}
 		if(is_botton){
 			continue;
 		}
 		if(e.key.keysym.sym==SDLK_p){
 			is_pause = !is_pause;
+			is_botton=1;
+		}
+		if(e.key.keysym.sym==SDLK_f){
+			is_find = !is_find;
 			is_botton=1;
 		}
 		if(!is_lay&&e.button.button==SDL_BUTTON_LEFT){
