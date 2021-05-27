@@ -21,14 +21,28 @@ SDL_Renderer *ren = NULL;
 TTF_Font *font = NULL;
 
 struct point{
-    int x,y;
-    point(int xx, int yy){
+    double x,y;
+	point(){}
+    point(double xx, double yy){
         x=xx,y=yy;
     }
 };
 
-point lay=point(0,0);
-bool is_lay;
+point mid;
+double ratio;
+
+double ratiox(double x){
+	return SCREEN_WIDTH/2-ratio*(mid.x-x);
+}
+double ratioy(double y){
+	return SCREEN_HEIGHT/2-ratio*(mid.y-y);
+}
+double deratiox(double x){
+	return mid.x-(SCREEN_WIDTH/2-x)/ratio;
+}
+double deratioy(double y){
+	return mid.y-(SCREEN_HEIGHT/2-y)/ratio;
+}
 
 double cbrt(double x)
 {
@@ -120,16 +134,16 @@ class Body
 		}
 		void show()
 		{
-            DrawCircle(col, x, y, r);
+            DrawCircle(col, ratiox(x), ratioy(y), ratio*r);
             std::list<point>::iterator it1 = path.begin(), it2 = it1;
             ++it2;
             while (it2 != path.end())
             {
-                SDL_RenderDrawLine(ren, (*it1).x, (*it1).y, (*it2).x, (*it2).y);
+                SDL_RenderDrawLine(ren, ratiox((*it1).x), ratioy((*it1).y), ratiox((*it2).x), ratioy((*it2).y));
                 ++it1;
                 ++it2;
             }
-            DrawText("Body:" + std::to_string(num), x, y, {255,255,255});
+            DrawText("Body:" + std::to_string(num), ratiox(x), ratioy(y), {255,255,255});
 		}
 		static void gravitation(Body &a, Body &b)
 		{
@@ -184,7 +198,6 @@ int main(int argc, char *argv[])
 	bool run = true;
 	srand(time(NULL));
 	std::list<Body> bodies;
-	is_lay=0;
 	if (SDL_Init(SDL_INIT_VIDEO) == -1)
 	{
 		std::cerr << "Error: " << SDL_GetError();
@@ -216,13 +229,20 @@ int main(int argc, char *argv[])
 	}
 	int listnum;
 	int bodynum;
-	bool is_botton;
+	bool is_botton=0;
+	point lay;
+	bool is_lay;
+	bool is_pause;
 start:
 	for(int i = 1; i <= BODYNUMS; i++)bodies.push_back(Body(i));
 	std::list<Body>::iterator i, j;
 	listnum = 0;
 	bodynum=BODYNUMS;
-	is_botton=0;
+	ratio=1;
+	is_lay=0;
+	lay=point(0,0);
+	mid=point(SCREEN_WIDTH/2,SCREEN_HEIGHT/2);
+	is_pause=0;
 	while (run)
 	{
 		while (SDL_PollEvent(&e))
@@ -234,10 +254,12 @@ start:
 		std::queue<std::list<Body>::iterator> earse;
 		for (i = bodies.begin(); i != bodies.end(); ++i)
 		{
-			(*i).move();
-			for (j = bodies.begin(); j != bodies.end(); ++j)
-			{
-				if (i != j) Body::gravitation(*i, *j);
+			if(!is_pause){
+				(*i).move();
+				for (j = bodies.begin(); j != bodies.end(); ++j)
+				{
+					if (i != j) Body::gravitation(*i, *j);
+				}
 			}
 			if((*i).m == 0){
                 earse.push(i);
@@ -257,24 +279,53 @@ start:
 		}
 		if(is_lay){
 			SDL_SetRenderDrawColor(ren,255,255,255,255);
-			SDL_RenderDrawLine(ren,lay.x,lay.y,int(e.button.x),int(e.button.y));
-			DrawCircle({255,255,255},lay.x,lay.y,5);
-			DrawText("laypoint",lay.x,lay.y,{255,255,255});
+			SDL_RenderDrawLine(ren,ratiox(lay.x),ratioy(lay.y),double(e.button.x),double(e.button.y));
+			DrawCircle({255,255,255},ratiox(lay.x),ratioy(lay.y),5);
+			DrawText("laypoint",ratiox(lay.x),ratioy(lay.y),{255,255,255});
 		}
 		SDL_RenderPresent(ren);
-		if(e.button.button!=SDL_BUTTON_LEFT&&e.button.button!=SDL_BUTTON_RIGHT){
+		if(e.button.button!=SDL_BUTTON_LEFT&&e.button.button!=SDL_BUTTON_RIGHT&&e.key.keysym.sym!=SDLK_p){
 			is_botton=0;
+		}
+		if(e.type == SDL_MOUSEWHEEL){
+			if(e.wheel.y>0&&ratio<=5){
+				ratio+=0.01;
+			}
+			if(e.wheel.y<0&&ratio>=0.2){
+				ratio-=0.01;
+			}
+		}
+		switch (e.key.keysym.sym)
+		{
+		case SDLK_UP:
+			mid.y--;
+			break;
+		case SDLK_LEFT:
+			mid.x--;
+			break;
+		case SDLK_DOWN:
+			mid.y++;
+			break;
+		case SDLK_RIGHT:
+			mid.x++;
+			break;
+		default:
+			break;
 		}
 		if(is_botton){
 			continue;
 		}
+		if(e.key.keysym.sym==SDLK_p){
+			is_pause = !is_pause;
+			is_botton=1;
+		}
 		if(!is_lay&&e.button.button==SDL_BUTTON_LEFT){
-			lay=point(int(e.button.x),int(e.button.y));
+			lay=point(deratiox(double(e.button.x)),deratioy(double(e.button.y)));
 			is_lay=1;
 			is_botton=1;
 		}
 		else if(is_lay&&e.button.button==SDL_BUTTON_LEFT){
-			bodies.push_back(Body(bodynum,lay,point(int(e.button.x),int(e.button.y))));
+			bodies.push_back(Body(bodynum,lay,point(deratiox(double(e.button.x)),deratioy(double(e.button.y)))));
 			bodynum++;
 			is_botton=1;
 		}
