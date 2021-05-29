@@ -311,8 +311,6 @@ start:
 		case SDLK_RIGHT:
 			mid.x++;
 			break;
-		default:
-			break;
 		}
 		if(is_find){
 			std::list<Body>::iterator maxn;
@@ -356,6 +354,7 @@ start:
 			is_botton=1;
 			goto start;
 		}
+		e=SDL_Event();
 	}
 	SDL_DestroyRenderer(ren);
 	SDL_DestroyWindow(wnd);
