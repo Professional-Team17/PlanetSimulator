@@ -15,6 +15,8 @@ const int SCREEN_WIDTH = 960;
 const int SCREEN_HEIGHT = 640;
 const int BODYNUMS = 200;
 const int MAXLENGTH = 100;
+const int BROAD_WIDTH = 100000000;
+const int BROAD_HEIGHT = 100000000;
 
 SDL_Window *wnd = NULL;
 SDL_Renderer *ren = NULL;
@@ -92,6 +94,18 @@ void DrawText(std::string text, int x, int y, SDL_Color col){
     SDL_FreeSurface(text_surface);
 }
 
+std::string to_str(int n){
+	std::string n1, n2;
+	while(n!=0){
+		n1.push_back(n % 10 + '0');
+		n/=10;
+	}
+	for(int i=n1.size()-1; i>=0; i--){
+		n2.push_back(n1[i]);
+	}
+	return n2;
+}
+
 class Body
 {
 	public:
@@ -129,8 +143,22 @@ class Body
 		{
             x += vx * T;
             y += vy * T;
-            path.push_back(point(x, y));
-            path.pop_front();
+			bool pass_broad=0;
+			if(x>BROAD_WIDTH)x-=2*BROAD_WIDTH,pass_broad=1;
+			if(x<-1*BROAD_WIDTH)x+=2*BROAD_WIDTH,pass_broad=1;
+			if(y>BROAD_HEIGHT)y-=2*BROAD_HEIGHT,pass_broad=1;
+			if(y<-1*BROAD_HEIGHT)y+=2*BROAD_HEIGHT,pass_broad=1;
+			if(pass_broad){
+				path.clear();
+				for (int i = 0; i < MAXLENGTH; i++)
+				{
+					path.push_back(point(x, y));
+				}
+			}
+			else{
+            	path.push_back(point(x, y));
+            	path.pop_front();
+			}
 		}
 		void show()
 		{
@@ -143,7 +171,10 @@ class Body
                 ++it1;
                 ++it2;
             }
-            DrawText("Body:" + std::to_string(num), ratiox(x), ratioy(y), {255,255,255});
+            DrawText("Body:" + to_str(num), ratiox(x), ratioy(y), {255,255,255});
+		}
+		void showlist(int listnum){
+			DrawText("Body:" + to_str(num) + " m:" + to_str(m) + " r:" + to_str(r), 0, listnum * TTF_FontHeight(font), col);
 		}
 		static void gravitation(Body &a, Body &b)
 		{
@@ -181,6 +212,21 @@ class Body
                 }
             }
         }
+		static void focus(std::list<Body> bodies){
+			std::list<Body>::iterator maxn;
+			double maxm=0;
+			for(auto i = bodies.begin(); i != bodies.end(); ++i){
+				if((*i).m>maxm){
+					maxn=i;
+					maxm=(*i).m;
+				}
+			}
+			mid=point((*maxn).x,(*maxn).y);
+		}
+		bool empty(){
+			return m;
+		}
+	private:
 		double x;
 		double y;
 		double m;
@@ -234,6 +280,7 @@ int main(int argc, char *argv[])
 	bool is_lay;
 	bool is_pause;
 	bool is_find;
+	point mouse;
 start:
 	for(int i = 1; i <= BODYNUMS; i++)bodies.push_back(Body(i));
 	std::list<Body>::iterator i, j;
@@ -245,6 +292,7 @@ start:
 	mid=point(SCREEN_WIDTH/2,SCREEN_HEIGHT/2);
 	is_pause=0;
 	is_find=0;
+	mouse=mid;
 	while (run)
 	{
 		while (SDL_PollEvent(&e))
@@ -263,7 +311,7 @@ start:
 					if (i != j) Body::gravitation(*i, *j);
 				}
 			}
-			if((*i).m == 0){
+			if((*i).empty() == 0){
                 earse.push(i);
                 continue;
             }
@@ -274,19 +322,20 @@ start:
             earse.pop();
             bodies.erase(t);
 		}
-		for (i = bodies.begin(),listnum = 0; i != bodies.end(); ++i, ++listnum){
-            if((listnum + 1) * TTF_FontHeight(font) <= SCREEN_HEIGHT){
-                DrawText("Body:" + std::to_string((*i).num) + " m:" + std::to_string((*i).m) + " r:" + std::to_string((*i).r), 0, listnum * TTF_FontHeight(font), (*i).col);
-			}
+		for (i = bodies.begin(),listnum = 0; i != bodies.end() && (listnum + 1) * TTF_FontHeight(font) <= SCREEN_HEIGHT; ++i, ++listnum){
+            (*i).showlist(listnum);
+		}
+		if(e.type == SDL_MOUSEMOTION){
+			mouse = {double(e.button.x),double(e.button.y)};
 		}
 		if(is_lay){
 			SDL_SetRenderDrawColor(ren,255,255,255,255);
-			SDL_RenderDrawLine(ren,ratiox(lay.x),ratioy(lay.y),double(e.button.x),double(e.button.y));
+			SDL_RenderDrawLine(ren,ratiox(lay.x),ratioy(lay.y),mouse.x,mouse.y);
 			DrawCircle({255,255,255},ratiox(lay.x),ratioy(lay.y),5);
 			DrawText("laypoint",ratiox(lay.x),ratioy(lay.y),{255,255,255});
 		}
 		SDL_RenderPresent(ren);
-		if(e.button.button!=SDL_BUTTON_LEFT&&e.button.button!=SDL_BUTTON_RIGHT&&e.key.keysym.sym!=SDLK_p&&e.key.keysym.sym!=SDLK_f){
+		if(e.button.button!=SDL_BUTTON_LEFT&&e.button.button!=SDL_BUTTON_RIGHT&&e.key.keysym.sym!=SDLK_p&&e.key.keysym.sym!=SDLK_f&&e.key.keysym.sym!=SDLK_c&&e.key.keysym.sym!=SDLK_r){
 			is_botton=0;
 		}
 		if(e.type == SDL_MOUSEWHEEL){
@@ -297,31 +346,25 @@ start:
 				ratio-=0.01;
 			}
 		}
-		switch (e.key.keysym.sym)
-		{
-		case SDLK_UP:
-			mid.y--;
-			break;
-		case SDLK_LEFT:
-			mid.x--;
-			break;
-		case SDLK_DOWN:
-			mid.y++;
-			break;
-		case SDLK_RIGHT:
-			mid.x++;
-			break;
+		if(e.type == SDL_KEYDOWN){
+			switch (e.key.keysym.sym)
+			{
+			case SDLK_UP:
+				mid.y--;
+				break;
+			case SDLK_LEFT:
+				mid.x--;
+				break;
+			case SDLK_DOWN:
+				mid.y++;
+				break;
+			case SDLK_RIGHT:
+				mid.x++;
+				break;
+			}
 		}
 		if(is_find){
-			std::list<Body>::iterator maxn;
-			double maxm=0;
-			for(i = bodies.begin(); i != bodies.end(); ++i){
-				if((*i).m>maxm){
-					maxn=i;
-					maxm=(*i).m;
-				}
-			}
-			mid=point((*maxn).x,(*maxn).y);
+			Body::focus(bodies);
 		}
 		if(is_botton){
 			continue;
@@ -334,25 +377,27 @@ start:
 			is_find = !is_find;
 			is_botton=1;
 		}
-		if(!is_lay&&e.button.button==SDL_BUTTON_LEFT){
-			lay=point(deratiox(double(e.button.x)),deratioy(double(e.button.y)));
-			is_lay=1;
-			is_botton=1;
-		}
-		else if(is_lay&&e.button.button==SDL_BUTTON_LEFT){
-			bodies.push_back(Body(bodynum,lay,point(deratiox(double(e.button.x)),deratioy(double(e.button.y)))));
-			bodynum++;
-			is_botton=1;
-		}
-		else if(is_lay&&e.button.button==SDL_BUTTON_RIGHT){
+		if(e.key.keysym.sym==SDLK_c){
 			is_lay=0;
 			lay=point(0,0);
 			is_botton=1;
 		}
-		else if(!is_lay&&e.button.button==SDL_BUTTON_RIGHT){
+		if(e.key.keysym.sym==SDLK_r){
 			bodies.clear();
 			is_botton=1;
 			goto start;
+		}
+		if(e.type == SDL_MOUSEBUTTONDOWN){
+			if(!is_lay&&e.button.button==SDL_BUTTON_LEFT){
+				lay=point(deratiox(mouse.x),deratioy(mouse.y));
+				is_lay=1;
+				is_botton=1;
+			}
+			if(is_lay&&e.button.button==SDL_BUTTON_LEFT){
+				bodies.push_back(Body(bodynum,lay,point(deratiox(mouse.x),deratioy(mouse.y))));
+				bodynum++;
+				is_botton=1;
+			}
 		}
 		e=SDL_Event();
 	}
