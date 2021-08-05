@@ -20,18 +20,18 @@ Press "f" to find the biggest body and focus on it.
 
 Use the wheel to change the camera's ratio.
 
-Press left botton to set a lay point, then press left botton to lay a body and right botton to cancel the lay point.
+Press left botton to set a lay point, then press left botton to lay a body and "c" to cancel the lay point.
 
-Press right botton to restart the simulator.
+Press "r" to restart the simulator.
 
 按“上”，“下”，“左”，“右”移动摄像机。
 
 按“p”暂停。
 
-按“f”键找到最大的行星体并专注于它。
+按“f”键找到最大的行星体并置其于屏幕中心。
 
 使用滚轮更改屏幕的比例。
 
-按左键设置放置点，然后按左键放置行星，按右键取消放置点。
+按左键设置放置点，然后按左键放置行星，按"c"取消放置点。
 
-按右键以重新启动模拟器。
+按"r"以重新启动模拟器。
