@@ -1,3 +1,6 @@
 target
 build/*
 .vscode/*
+_build/*
+out/*
+.vs/*

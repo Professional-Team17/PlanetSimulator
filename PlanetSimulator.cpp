@@ -298,6 +298,64 @@ start:
 		while (SDL_PollEvent(&e))
 		{
 			if (e.type == SDL_QUIT) run = false;
+			if(e.type == SDL_MOUSEMOTION){
+				mouse = {double(e.button.x),double(e.button.y)};
+			}
+			if(e.type == SDL_MOUSEWHEEL){
+				if(e.wheel.y>0&&ratio<=5){
+					ratio+=0.01;
+				}
+				if(e.wheel.y<0&&ratio>=0.2){
+					ratio-=0.01;
+				}
+			}
+			if(e.type == SDL_KEYDOWN){
+				switch (e.key.keysym.sym)
+				{
+				case SDLK_UP:
+					mid.y--;
+					break;
+				case SDLK_LEFT:
+					mid.x--;
+					break;
+				case SDLK_DOWN:
+					mid.y++;
+					break;
+				case SDLK_RIGHT:
+					mid.x++;
+					break;
+				case SDLK_p:
+					is_pause = !is_pause;
+					is_botton = 1;
+					break;
+				case SDLK_f:
+					is_find = !is_find;
+					is_botton = 1;
+					break;
+				case SDLK_c:
+					is_lay = 0;
+					lay = point(0, 0);
+					is_botton = 1;
+					break;
+				case SDLK_r:
+					bodies.clear();
+					is_botton = 1;
+					goto start;
+					break;
+				}
+			}
+			if (e.type == SDL_MOUSEBUTTONDOWN) {
+				if (!is_lay && e.button.button == SDL_BUTTON_LEFT) {
+					lay = point(deratiox(mouse.x), deratioy(mouse.y));
+					is_lay = 1;
+					is_botton = 1;
+				}
+				if (is_lay && e.button.button == SDL_BUTTON_LEFT) {
+					bodies.push_back(Body(bodynum, lay, point(deratiox(mouse.x), deratioy(mouse.y))));
+					bodynum++;
+					is_botton = 1;
+				}
+			}
 		}
 		SDL_SetRenderDrawColor(ren, 0, 0, 0, 255);
 		SDL_RenderClear(ren);
@@ -317,89 +375,27 @@ start:
             }
 			(*i).show();
 		}
+
 		while(!earse.empty()){
             std::list<Body>::iterator t = earse.front();
             earse.pop();
             bodies.erase(t);
 		}
+
 		for (i = bodies.begin(),listnum = 0; i != bodies.end() && (listnum + 1) * TTF_FontHeight(font) <= SCREEN_HEIGHT; ++i, ++listnum){
             (*i).showlist(listnum);
 		}
-		if(e.type == SDL_MOUSEMOTION){
-			mouse = {double(e.button.x),double(e.button.y)};
+
+		if (is_lay) {
+			SDL_SetRenderDrawColor(ren, 255, 255, 255, 255);
+			SDL_RenderDrawLine(ren, ratiox(lay.x), ratioy(lay.y), mouse.x, mouse.y);
+			DrawCircle({ 255,255,255 }, ratiox(lay.x), ratioy(lay.y), 5);
+			DrawText("laypoint", ratiox(lay.x), ratioy(lay.y), { 255,255,255 });
 		}
-		if(is_lay){
-			SDL_SetRenderDrawColor(ren,255,255,255,255);
-			SDL_RenderDrawLine(ren,ratiox(lay.x),ratioy(lay.y),mouse.x,mouse.y);
-			DrawCircle({255,255,255},ratiox(lay.x),ratioy(lay.y),5);
-			DrawText("laypoint",ratiox(lay.x),ratioy(lay.y),{255,255,255});
-		}
-		SDL_RenderPresent(ren);
-		if(e.button.button!=SDL_BUTTON_LEFT&&e.button.button!=SDL_BUTTON_RIGHT&&e.key.keysym.sym!=SDLK_p&&e.key.keysym.sym!=SDLK_f&&e.key.keysym.sym!=SDLK_c&&e.key.keysym.sym!=SDLK_r){
-			is_botton=0;
-		}
-		if(e.type == SDL_MOUSEWHEEL){
-			if(e.wheel.y>0&&ratio<=5){
-				ratio+=0.01;
-			}
-			if(e.wheel.y<0&&ratio>=0.2){
-				ratio-=0.01;
-			}
-		}
-		if(e.type == SDL_KEYDOWN){
-			switch (e.key.keysym.sym)
-			{
-			case SDLK_UP:
-				mid.y--;
-				break;
-			case SDLK_LEFT:
-				mid.x--;
-				break;
-			case SDLK_DOWN:
-				mid.y++;
-				break;
-			case SDLK_RIGHT:
-				mid.x++;
-				break;
-			}
-		}
-		if(is_find){
+		if (is_find) {
 			Body::focus(bodies);
 		}
-		if(is_botton){
-			continue;
-		}
-		if(e.key.keysym.sym==SDLK_p){
-			is_pause = !is_pause;
-			is_botton=1;
-		}
-		if(e.key.keysym.sym==SDLK_f){
-			is_find = !is_find;
-			is_botton=1;
-		}
-		if(e.key.keysym.sym==SDLK_c){
-			is_lay=0;
-			lay=point(0,0);
-			is_botton=1;
-		}
-		if(e.key.keysym.sym==SDLK_r){
-			bodies.clear();
-			is_botton=1;
-			goto start;
-		}
-		if(e.type == SDL_MOUSEBUTTONDOWN){
-			if(!is_lay&&e.button.button==SDL_BUTTON_LEFT){
-				lay=point(deratiox(mouse.x),deratioy(mouse.y));
-				is_lay=1;
-				is_botton=1;
-			}
-			if(is_lay&&e.button.button==SDL_BUTTON_LEFT){
-				bodies.push_back(Body(bodynum,lay,point(deratiox(mouse.x),deratioy(mouse.y))));
-				bodynum++;
-				is_botton=1;
-			}
-		}
-		e=SDL_Event();
+		SDL_RenderPresent(ren);
 	}
 	SDL_DestroyRenderer(ren);
 	SDL_DestroyWindow(wnd);
